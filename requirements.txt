@@ -1,0 +1,8 @@
+Flask
+pandas
+SQLAlchemy
+pymysql
+requests
+beautifulsoup4
+plotly
+gunicorn

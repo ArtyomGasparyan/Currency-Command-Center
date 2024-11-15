@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Exchange Rates Visualization</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.14.0/plotly.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.14.0/plotly.min.js"></script>
+    <style>
+        /* Enhanced Splash Screen Styles */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            overflow: hidden; /* Ensures video covers screen */
+        }
+
+        #video-background {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1; /* Place video behind content */
+            transform: translate(-50%, -50%);
+            background: url('/path/to/fallback-image.jpg') no-repeat;
+            background-size: cover; /* Fallback image for unsupported browsers */
+        }
+
+        .splash-content {
+            text-align: center;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif; /* Modern font */
+            animation: fadeInUp 1.5s ease-out; /* Slide-in effect */
+            z-index: 2; /* Above video */
+        }
+
+        .splash-content h2 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+        }
+
+        .splash-content p {
+            font-size: 1.3em;
+            margin-top: 10px;
+            color: #E0E0E0; /* Slightly lighter shade for the subtitle */
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        .filters, .best-rates {
+            margin-bottom: 20px;
+        }
+        .best-rates {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .rate-card {
+            flex: 1 1 30%;
+            max-width: 30%;
+            margin: 10px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .rate-card h3 {
+            margin: 10px 0;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .rate-card p {
+            margin: 5px 0;
+            font-size: 1em;
+            color: #555;
+        }
+        #chart {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .best-rates-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #07565a;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .best-rates-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .chart-box {
+            width: 48%;
+        }
+
+        /* Styling for Dropdowns */
+        .filters.dropdown {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .filters label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .filters select {
+            margin-right: 20px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="splash-screen" class="splash-screen">
+        <video autoplay muted loop id="video-background">
+            <source src="/static/videos/background.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="splash-content">
+            <h2>Welcome to Your Currency Command Center</h2>
+            <p>Track, Compare, and Stay Ahead with Real-Time Armenian Rates</p>
+        </div>
+    </div>
+
+    <h1>Exchange Rates Visualization</h1>
+
+    <div class="best-rates-header">
+        <h2>Best Rates Currently Offered</h2>
+    </div>
+
+    <!-- Best Rates Section -->
+    <div class="best-rates" id="best-rates">
+        <!-- Best rates data will be inserted here dynamically -->
+    </div>
+
+    <!-- Bank and Metric Filters along with Date Filters -->
+    <div class="filters dropdown">
+        <!-- Date Filters -->
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date">
+        
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date">
+        
+        <!-- Bank Selection Dropdown -->
+        <label for="bank_select">Select Bank:</label>
+        <select id="bank_select">
+            <!-- This will be replaced by the first bank dynamically -->
+            <option value="">Select a bank...</option> 
+        </select>
+
+        <!-- Metric Selection Dropdown -->
+        <label for="metric_select">Select Metric:</label>
+        <select id="metric_select">
+            <option value="usd_buy">USD Buy</option>
+            <option value="usd_sell">USD Sell</option>
+            <option value="eur_buy">EUR Buy</option>
+            <option value="eur_sell">EUR Sell</option>
+            <option value="rur_buy">RUR Buy</option>
+            <option value="rur_sell">RUR Sell</option>
+        </select>
+
+        <!-- Apply Button -->
+        <button id="fetch_data">Apply</button>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="chart-container">
+        <!-- Central Bank Rates Chart -->
+        <div id="chart_cba" class="chart-box"></div>
+        <!-- Bank Rates Chart -->
+        <div id="chart_banks" class="chart-box"></div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Function to format date to 'YYYY-MM-DD'
+            function formatDate(date) {
+                var d = new Date(date),
+                    month = '' + (d.getMonth() + 1),
+                    day = '' + d.getDate(),
+                    year = d.getFullYear();
+
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+
+                return [year, month, day].join('-');
+            }
+
+            // Set default dates: start date 30 days ago, end date today
+            var endDate = new Date();
+            var startDate = new Date();
+            startDate.setDate(endDate.getDate() - 30);
+            endDate.setDate(endDate.getDate() + 1);
+
+            // Format and set the dates to the input fields
+            $('#start_date').val(formatDate(startDate));
+            $('#end_date').val(formatDate(endDate));
+
+            // Function to fetch best rates and render them
+            function fetchBestRates() {
+                $.ajax({
+                    url: '/best_rates',
+                    method: 'GET',
+                    success: function (response) {
+                        var bestRatesHtml = `
+                            <div class="rate-card">
+                                <h3>USD Buy</h3>
+                                <p>${response.usd_buy[0]}</p>
+                                <p>${response.usd_buy[1]}</p>
+                            </div>
+                            <div class="rate-card">
+                                <h3>USD Sell</h3>
+                                <p>${response.usd_sell[0]}</p>
+                                <p>${response.usd_sell[1]}</p>
+                            </div>
+                            <div class="rate-card">
+                                <h3>EUR Buy</h3>
+                                <p>${response.eur_buy[0]}</p>
+                                <p>${response.eur_buy[1]}</p>
+                            </div>
+                            <div class="rate-card">
+                                <h3>EUR Sell</h3>
+                                <p>${response.eur_sell[0]}</p>
+                                <p>${response.eur_sell[1]}</p>
+                            </div>
+                            <div class="rate-card">
+                                <h3>RUR Buy</h3>
+                                <p>${response.rur_buy[0]}</p>
+                                <p>${response.rur_buy[1]}</p>
+                            </div>
+                            <div class="rate-card">
+                                <h3>RUR Sell</h3>
+                                <p>${response.rur_sell[0]}</p>
+                                <p>${response.rur_sell[1]}</p>
+                            </div>`;
+                        $('#best-rates').html(bestRatesHtml);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Failed to fetch best rates:', error);
+                        $('#best-rates').html('<p>Failed to load best rates. Please try again later.</p>');
+                    }
+                });
+            }
+
+            function fetchData() {
+                // Get selected dates and filters
+                var startDate = $('#start_date').val();
+                var endDate = $('#end_date').val();
+                var selectedBank = $('#bank_select').val() || 'default_bank_value'; // Use default if not set
+                var selectedMetric = $('#metric_select').val();
+
+                if (!startDate || !endDate) {
+                    console.error('Start date and end date are not set correctly.');
+                    alert('Please select valid date ranges.');
+                    return; // Exit the function if dates are not set
+                }
+
+                // Make an AJAX call to fetch data
+                $.ajax({
+                    url: '/data',
+                    method: 'GET',
+                    data: {
+                        start_date: startDate,
+                        end_date: endDate,
+                        bank: selectedBank,
+                        metric: selectedMetric
+                    },
+                    success: function (response) {
+                        if (response.graph_json_cba) {
+                            try {
+                                // Parse and render the CBA chart
+                                const graphDataCBA = JSON.parse(response.graph_json_cba);
+                                Plotly.newPlot('chart_cba', graphDataCBA.data, graphDataCBA.layout);
+
+                                // Parse and render the bank rates chart
+                                const graphDataBanks = JSON.parse(response.graph_json_banks);
+                                Plotly.newPlot('chart_banks', graphDataBanks.data, graphDataBanks.layout);
+                            } catch (error) {
+                                console.error('Error parsing JSON:', error);
+                                alert('Failed to parse chart data.');
+                            }
+                        } else {
+                            alert('No data available for the selected date range.');
+                            $('#chart_cba').html('');  // Clear the chart area
+                            $('#chart_banks').html(''); // Clear the chart area
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Failed to fetch data:', error);
+                        alert('Failed to fetch data. Please check the server and network.');
+                        $('#chart_cba').html('');  // Clear the chart area
+                        $('#chart_banks').html(''); // Clear the chart area
+                    }
+                });
+            }
+
+            function fetchBankNames() {
+                $.ajax({
+                    url: '/get_bank_names', // Endpoint to get unique bank names
+                    method: 'GET',
+                    success: function (response) {
+                        const bankSelect = $('#bank_select');
+                        bankSelect.empty(); // Clear existing options
+                        
+                        // Populate dropdown with bank names
+                        response.banks.forEach((bank, index) => {
+                            const option = new Option(bank, bank);
+                            bankSelect.append(option);
+
+                            // Set the first bank as selected by default
+                            if (index === 0) {
+                                bankSelect.val(bank); // Set the first bank as the selected value
+                            }
+                        });
+
+                        // Trigger data fetch with the first bank selected by default
+                        fetchData();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Failed to fetch bank names:', error);
+                    }
+                });
+            }
+
+            // Fetch best rates and data when the page loads
+            fetchBestRates();
+            fetchData();
+            fetchBankNames();
+
+            // Fetch data when the button is clicked
+            $('#fetch_data').click(fetchData);
+
+             // Fetch data when the dropdown selections change
+            $('#bank_select, #metric_select').change(fetchData);
+        });
+        // JavaScript to hide the splash screen after the animation
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                // Fade out the splash screen
+                const splashScreen = document.getElementById('splash-screen');
+                splashScreen.style.opacity = '0';
+
+                // Remove the splash screen after the fade-out effect
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 1000); // Duration matches the CSS transition
+            }, 5000); // Show splash screen for 3 seconds
+        });
+        // JavaScript to control the splash screen timing
+        $(document).ready(function () {
+            // Show the splash screen for 5 seconds, then hide it
+            setTimeout(function () {
+                $('#splash-screen').fadeOut(1000, function () {
+                    $('#main-content').fadeIn(1000); // Show the main content
+                });
+            }, 5000); // Time in milliseconds (5000ms = 5 seconds)
+        });
+    </script>
+</body>
+</html>
